@@ -1,0 +1,27 @@
+{
+  "name": "redops-collab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace packages/shared && npm run build --workspace apps/api && npm run build --workspace apps/web",
+    "typecheck": "npm run build --workspace packages/shared && npm run typecheck --workspace apps/api && npm run typecheck --workspace apps/web",
+    "dev:prepare": "npm run build --workspace packages/shared",
+    "dev:api": "npm run dev:prepare && npm run dev --workspace apps/api",
+    "dev:web": "npm run dev:prepare && npm run dev --workspace apps/web",
+    "dev": "npm run dev:prepare && concurrently -n api,web -c red,cyan \"npm run dev --workspace apps/api\" \"npm run dev --workspace apps/web\"",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
