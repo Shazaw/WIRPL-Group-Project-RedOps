@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RedOps Collab — UI/UX Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    --bg: #080b0f;
+    --surface: #0d1117;
+    --surface2: #141a22;
+    --surface3: #1a2230;
+    --border: #1f2d3d;
+    --border2: #243040;
+    --red: #e5383b;
+    --red-dim: #8b1a1c;
+    --red-glow: rgba(229,56,59,0.15);
+    --amber: #f59e0b;
+    --green: #22c55e;
+    --cyan: #06b6d4;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Outfit', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .mono { font-family: var(--mono); }
+  .sans { font-family: var(--sans); }
+  /* Custom scrollbars */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--red-dim); }
+
+  .btn-red {
+    background: var(--red);
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 10px 18px;
+    text-transform: uppercase;
+    border: 1px solid var(--red);
+    transition: all .15s;
+    cursor: pointer;
+  }
+  .btn-red:hover { background: #ff4548; box-shadow: 0 0 12px rgba(229,56,59,.4); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 10px 18px;
+    text-transform: uppercase;
+    border: 1px solid var(--border2);
+    transition: all .15s;
+    cursor: pointer;
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--red-dim); }
+  .field-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .field-input, .field-select, .field-textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    padding: 10px 12px;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field-input:focus, .field-select:focus, .field-textarea:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 1px var(--red);
+  }
+  .field-textarea { min-height: 90px; resize: vertical; font-family: var(--mono); font-size: 13px; }
+  .card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .card-hover:hover { border-color: var(--red-dim); background: var(--surface3); cursor: pointer; }
+  .pill {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    display: inline-block;
+  }
+  .pill-red { background: rgba(229,56,59,.15); color: var(--red); border: 1px solid rgba(229,56,59,.3); }
+  .pill-amber { background: rgba(245,158,11,.12); color: var(--amber); border: 1px solid rgba(245,158,11,.3); }
+  .pill-green { background: rgba(34,197,94,.10); color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+  .pill-cyan { background: rgba(6,182,212,.10); color: var(--cyan); border: 1px solid rgba(6,182,212,.3); }
+  .pill-gray { background: rgba(100,116,139,.10); color: var(--text-dim); border: 1px solid var(--border2); }
+  .glow-pulse {
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .55; }
+  }
+  .blink::after {
+    content: '_';
+    animation: blink 1s steps(2) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(229,56,59,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(229,56,59,.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 22px;
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all .15s;
+    text-decoration: none;
+  }
+  .nav-item:hover {
+    color: var(--text);
+    background: rgba(229,56,59,.05);
+    border-left-color: var(--red-dim);
+  }
+  .nav-item.active {
+    color: var(--red);
+    background: var(--red-glow);
+    border-left-color: var(--red);
+  }
+  .nav-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    min-width: 22px;
+  }
+  .table-row { border-bottom: 1px solid var(--border); }
+  .table-row:hover { background: var(--surface3); cursor: pointer; }
+  .severity-bar {
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+  }
+  .severity-bar > div { height: 100%; }
+
+  .kanban-card {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--red-dim);
+    padding: 12px;
+    border-radius: 3px;
+    margin-bottom: 10px;
+    cursor: grab;
+    transition: all .15s;
+  }
+  .kanban-card:hover { border-color: var(--red); transform: translateY(-1px); }
+
+  .timeline-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+  }
+  .timeline-line {
+    width: 1px;
+    background: var(--border2);
+    flex: 1;
+    margin: 4px 0;
+  }
+  .heading-eyebrow {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--mono); font-size: 11px; color: var(--red);
+    letter-spacing: 3px; text-transform: uppercase;
+  }
+  .heading-eyebrow::before {
+    content: ''; width: 36px; height: 1px; background: var(--red);
+  }
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 18px 20px;
+    border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="env,react">
+const { useState, useMemo, useEffect, useRef } = React;
+
+// ====================== Icons (inline SVG, no deps) ======================
+const Icon = ({ name, size = 16, className = '' }) => {
+  const paths = {
+    dashboard: <path d="M3 3h7v9H3V3zm0 11h7v7H3v-7zm11-11h7v7h-7V3zm0 9h7v9h-7v-9z" />,
+    target: <g><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" fill="currentColor" /></g>,
+    bug: <g><rect x="6" y="10" width="12" height="9" rx="3" /><path d="M9 10V8a3 3 0 016 0v2M3 14h3M18 14h3M4 18h3M17 18h3" /></g>,
+    file: <g><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z" /><path d="M14 3v5h5" /></g>,
+    users: <g><circle cx="9" cy="8" r="3" /><path d="M3 21v-1a6 6 0 0112 0v1" /><circle cx="17" cy="9" r="2" /><path d="M21 21v-1a4 4 0 00-4-4" /></g>,
+    settings: <g><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 00.4 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.4-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.4-1.9l-.1-.1A2 2 0 116.9 4.2l.1.1a1.7 1.7 0 001.9.4H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.4l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.4 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z" /></g>,
+    plus: <g><path d="M12 5v14M5 12h14" /></g>,
+    arrow: <g><path d="M5 12h14M13 5l7 7-7 7" /></g>,
+    bell: <g><path d="M18 16v-5a6 6 0 10-12 0v5l-2 2v1h16v-1l-2-2z" /><path d="M10 21a2 2 0 004 0" /></g>,
+    lock: <g><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 018 0v4" /></g>,
+    activity: <path d="M22 12h-4l-3 9L9 3l-3 9H2" />,
+    eye: <g><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></g>,
+    check: <path d="M5 13l4 4L19 7" />,
+    chevron: <path d="M9 18l6-6-6-6" />,
+    search: <g><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></g>,
+    logout: <g><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5M21 12H9" /></g>,
+    flag: <g><path d="M4 22V4M4 4h13l-2 4 2 4H4" /></g>,
+    server: <g><rect x="3" y="4" width="18" height="6" rx="1" /><rect x="3" y="14" width="18" height="6" rx="1" /><path d="M7 7h.01M7 17h.01" /></g>,
+    terminal: <g><path d="M4 17l6-6-6-6M12 19h8" /></g>,
+    download: <g><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M7 10l5 5 5-5M12 15V3" /></g>,
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      {paths[name] || null}
+    </svg>
+  );
+};
+
+// ====================== Seed Data ======================
+const seedEngagements = [
+  { id: 'ENG-2026-014', client: 'Northwind Financial', type: 'WEB_APP', status: 'ACTIVE', risk: 'HIGH', start: '2026-05-04', end: '2026-06-12', findings: 12, criticals: 2, team: 5, scope: '*.northwind-fin.com, 10.40.0.0/16' },
+  { id: 'ENG-2026-013', client: 'Helios Energy', type: 'RED_TEAM', status: 'ACTIVE', risk: 'CRITICAL', start: '2026-05-01', end: '2026-07-30', findings: 7, criticals: 3, team: 8, scope: 'corp.helios.io, OT segment 172.16.0.0/12' },
+  { id: 'ENG-2026-012', client: 'Acme Robotics', type: 'NETWORK', status: 'REPORTING', risk: 'MEDIUM', start: '2026-04-12', end: '2026-05-18', findings: 19, criticals: 0, team: 4, scope: '203.0.113.0/24, dmz.acme.local' },
+  { id: 'ENG-2026-011', client: 'Lumen Health', type: 'CLOUD', status: 'ARCHIVED', risk: 'LOW', start: '2026-03-01', end: '2026-04-04', findings: 8, criticals: 0, team: 3, scope: 'AWS account 9981-2204, prod-VPCs' },
+];
+
+const seedFindings = [
+  { id: 'F-014-001', engId: 'ENG-2026-014', title: 'SQL injection in /api/v2/login → email param', severity: 'CRITICAL', cvss: 9.8, status: 'CONFIRMED', owner: 'k.alvarez', target: 'auth.northwind-fin.com', tags: ['CWE-89','SQLi','PreAuth'], updated: '14m ago' },
+  { id: 'F-014-002', engId: 'ENG-2026-014', title: 'Stored XSS in customer support thread renderer', severity: 'HIGH', cvss: 8.2, status: 'IN_REVIEW', owner: 'j.park', target: 'support.northwind-fin.com', tags: ['CWE-79','XSS'], updated: '1h ago' },
+  { id: 'F-014-003', engId: 'ENG-2026-014', title: 'SSRF via image proxy → AWS metadata endpoint', severity: 'CRITICAL', cvss: 9.4, status: 'IN_REVIEW', owner: 'k.alvarez', target: 'media.northwind-fin.com', tags: ['SSRF','CloudMeta'], updated: '2h ago' },
+  { id: 'F-014-004', engId: 'ENG-2026-014', title: 'Weak JWT signing key (HS256, 8 chars, dictionary)', severity: 'HIGH', cvss: 7.6, status: 'CONFIRMED', owner: 's.okonkwo', target: 'api.northwind-fin.com', tags: ['JWT','Crypto'], updated: '4h ago' },
+  { id: 'F-014-005', engId: 'ENG-2026-014', title: 'IDOR — /api/v2/accounts/{id}/statements', severity: 'MEDIUM', cvss: 6.5, status: 'DRAFT', owner: 'm.tanaka', target: 'api.northwind-fin.com', tags: ['IDOR','BOLA'], updated: '6h ago' },
+  { id: 'F-014-006', engId: 'ENG-2026-014', title: 'CSRF token reuse across user sessions', severity: 'MEDIUM', cvss: 5.4, status: 'DRAFT', owner: 'j.park', target: 'app.northwind-fin.com', tags: ['CSRF'], updated: '1d ago' },
+  { id: 'F-014-007', engId: 'ENG-2026-014', title: 'Verbose error messages leak ORM stack traces', severity: 'LOW', cvss: 3.7, status: 'CONFIRMED', owner: 'm.tanaka', target: 'api.northwind-fin.com', tags: ['InfoLeak'], updated: '1d ago' },
+  { id: 'F-014-008', engId: 'ENG-2026-014', title: 'TLS 1.0 still negotiable on legacy admin host', severity: 'MEDIUM', cvss: 5.9, status: 'CONFIRMED', owner: 's.okonkwo', target: 'admin-legacy.northwind-fin.com', tags: ['TLS','Crypto'], updated: '2d ago' },
+  { id: 'F-014-009', engId: 'ENG-2026-014', title: 'Session cookie missing Secure + SameSite flags', severity: 'LOW', cvss: 4.2, status: 'CONFIRMED', owner: 'j.park', target: 'app.northwind-fin.com', tags: ['Cookies'], updated: '2d ago' },
+  { id: 'F-014-010', engId: 'ENG-2026-014', title: 'Mass assignment on /api/v2/users/me — role field', severity: 'HIGH', cvss: 8.1, status: 'IN_REVIEW', owner: 'k.alvarez', target: 'api.northwind-fin.com', tags: ['MassAssign','BAC'], updated: '3d ago' },
+  { id: 'F-013-001', engId: 'ENG-2026-013', title: 'Phishing pretext bypassed mail gateway DMARC alignment', severity: 'CRITICAL', cvss: 9.1, status: 'CONFIRMED', owner: 'k.alvarez', target: 'mail.helios.io', tags: ['Phishing','DMARC'], updated: '5h ago' },
+  { id: 'F-013-002', engId: 'ENG-2026-013', title: 'Domain admin via Kerberoasting (svc_backup)', severity: 'CRITICAL', cvss: 9.6, status: 'CONFIRMED', owner: 's.okonkwo', target: 'DC01.corp.helios.io', tags: ['AD','Kerberos'], updated: '3h ago' },
+];
+
+const seedTargets = [
+  { id: 'T-001', engId: 'ENG-2026-014', host: 'auth.northwind-fin.com', ip: '54.218.x.x', tech: 'nginx/1.24, Node 20', status: 'IN_SCOPE', notes: 'Auth + MFA endpoints' },
+  { id: 'T-002', engId: 'ENG-2026-014', host: 'app.northwind-fin.com', ip: '54.218.x.x', tech: 'nginx, React SPA', status: 'IN_SCOPE', notes: 'Customer portal SPA' },
+  { id: 'T-003', engId: 'ENG-2026-014', host: 'api.northwind-fin.com', ip: '10.40.12.4', tech: 'Express, PG 15', status: 'IN_SCOPE', notes: 'REST API surface' },
+  { id: 'T-004', engId: 'ENG-2026-014', host: 'support.northwind-fin.com', ip: '10.40.12.9', tech: 'Zendesk fork', status: 'IN_SCOPE', notes: 'Support portal' },
+  { id: 'T-005', engId: 'ENG-2026-014', host: 'admin-legacy.northwind-fin.com', ip: '10.40.20.4', tech: 'IIS 8.5, .NET 4.6', status: 'IN_SCOPE', notes: 'Internal admin (legacy)' },
+  { id: 'T-006', engId: 'ENG-2026-014', host: 'cdn.northwind-fin.com', ip: 'CloudFront', tech: 'CloudFront', status: 'OUT_OF_SCOPE', notes: 'Third-party CDN — excluded per RoE' },
+];
+
+const seedTasks = [
+  { id: 'TK-001', engId: 'ENG-2026-014', title: 'Re-confirm SQLi blast radius on /api/v2/login', col: 'TODO', owner: 'k.alvarez', findingId: 'F-014-001', priority: 'HIGH' },
+  { id: 'TK-002', engId: 'ENG-2026-014', title: 'Pivot from SSRF → enumerate IAM role permissions', col: 'TODO', owner: 'k.alvarez', findingId: 'F-014-003', priority: 'HIGH' },
+  { id: 'TK-003', engId: 'ENG-2026-014', title: 'Burp Pro scan over support.* subdomain', col: 'IN_PROGRESS', owner: 'j.park', findingId: null, priority: 'MED' },
+  { id: 'TK-004', engId: 'ENG-2026-014', title: 'Build exploit chain doc: SQLi → JWT forge → admin', col: 'IN_PROGRESS', owner: 's.okonkwo', findingId: 'F-014-004', priority: 'HIGH' },
+  { id: 'TK-005', engId: 'ENG-2026-014', title: 'Peer-review F-014-002 (Stored XSS)', col: 'REVIEW', owner: 'm.tanaka', findingId: 'F-014-002', priority: 'MED' },
+  { id: 'TK-006', engId: 'ENG-2026-014', title: 'Confirm cookie flag findings on every subdomain', col: 'REVIEW', owner: 'j.park', findingId: 'F-014-009', priority: 'LOW' },
+  { id: 'TK-007', engId: 'ENG-2026-014', title: 'Initial recon: subdomain + ASN sweep', col: 'DONE', owner: 's.okonkwo', findingId: null, priority: 'MED' },
+  { id: 'TK-008', engId: 'ENG-2026-014', title: 'Authenticated crawl with test accounts × 3', col: 'DONE', owner: 'm.tanaka', findingId: null, priority: 'MED' },
+];
+
+const seedTeam = [
+  { user: 'r.chen', name: 'Rachel Chen', role: 'ENGAGEMENT_LEAD', engagements: 3, status: 'online', last: 'now' },
+  { user: 'k.alvarez', name: 'Karim Alvarez', role: 'SENIOR_TESTER', engagements: 2, status: 'online', last: '4m' },
+  { user: 's.okonkwo', name: 'Sade Okonkwo', role: 'SENIOR_TESTER', engagements: 2, status: 'online', last: '12m' },
+  { user: 'j.park', name: 'Jiwoo Park', role: 'TESTER', engagements: 1, status: 'online', last: '1m' },
+  { user: 'm.tanaka', name: 'Miyu Tanaka', role: 'TESTER', engagements: 1, status: 'idle', last: '47m' },
+  { user: 'a.lindqvist', name: 'Annika Lindqvist', role: 'REPORT_WRITER', engagements: 4, status: 'offline', last: '3h' },
+  { user: 'p.gupta', name: 'Priya Gupta', role: 'PLATFORM_ADMIN', engagements: 0, status: 'online', last: '20m' },
+  { user: 'client.northwind', name: 'C. Bishop (Northwind)', role: 'CLIENT_VIEWER', engagements: 1, status: 'offline', last: '2d' },
+];
+
+const seedReports = [
+  { id: 'R-014-DRAFT-3', engId: 'ENG-2026-014', name: 'Northwind — Internal Tech Report v0.3', status: 'DRAFT', author: 'a.lindqvist', updated: '32m ago', findings: 8 },
+  { id: 'R-014-DRAFT-2', engId: 'ENG-2026-014', name: 'Northwind — Executive Summary v0.2', status: 'IN_REVIEW', author: 'a.lindqvist', updated: '3h ago', findings: 6 },
+  { id: 'R-013-FINAL-1', engId: 'ENG-2026-013', name: 'Helios — Red Team Final Report v1.0', status: 'SIGNED', author: 'a.lindqvist', updated: 'Yesterday', findings: 7 },
+  { id: 'R-012-FINAL-1', engId: 'ENG-2026-012', name: 'Acme Robotics — Internal Network v1.0', status: 'DELIVERED', author: 'a.lindqvist', updated: '2d ago', findings: 19 },
+];
+
+const seedActivity = [
+  { who: 'k.alvarez', what: 'confirmed finding', target: 'F-014-001', when: '14m ago', kind: 'finding' },
+  { who: 'system', what: 'engagement risk score updated', target: 'CRITICAL', when: '15m ago', kind: 'system' },
+  { who: 'j.park', what: 'submitted for review', target: 'F-014-002', when: '1h ago', kind: 'finding' },
+  { who: 'a.lindqvist', what: 'edited section in', target: 'R-014-DRAFT-3', when: '32m ago', kind: 'report' },
+  { who: 's.okonkwo', what: 'created task', target: 'TK-004', when: '2h ago', kind: 'task' },
+  { who: 'r.chen', what: 'approved peer-review on', target: 'F-014-004', when: '4h ago', kind: 'finding' },
+  { who: 'system', what: 'CVE references suggested for', target: 'F-014-003', when: '5h ago', kind: 'system' },
+];
+
+const sevColor = (s) => ({CRITICAL:'pill-red',HIGH:'pill-red',MEDIUM:'pill-amber',LOW:'pill-cyan'}[s] || 'pill-gray');
+const statusColor = (s) => ({CONFIRMED:'pill-green',IN_REVIEW:'pill-amber',DRAFT:'pill-gray',SIGNED:'pill-green',DELIVERED:'pill-green',ACTIVE:'pill-green',REPORTING:'pill-amber',ARCHIVED:'pill-gray'}[s] || 'pill-gray');
+
+// ====================== Shell: Sidebar + TopBar ======================
+const SidebarItem = ({ num, label, page, current, setPage, icon, disabled }) => (
+  <a className={`nav-item ${current===page ? 'active':''} ${disabled?'opacity-40 pointer-events-none':''}`}
+     onClick={()=> !disabled && setPage(page)}>
+    {num != null && <span className="nav-num">{num}</span>}
+    {icon && <Icon name={icon} size={14} />}
+    <span>{label}</span>
+  </a>
+);
+
+const Sidebar = ({ page, setPage, activeEng, setActiveEng, logout }) => (
+  <aside style={{width:260, minWidth:260, background:'var(--surface)', borderRight:'1px solid var(--border)'}}
+         className="h-screen sticky top-0 flex flex-col overflow-y-auto">
+    <div style={{padding:'24px 22px 18px', borderBottom:'1px solid var(--border)'}}>
+      <div className="mono" style={{fontSize:10, color:'var(--red)', letterSpacing:3}}>// REDOPS_</div>
+      <div style={{fontSize:18, fontWeight:700, letterSpacing:-.3, marginTop:2}}>RedOps Collab</div>
+      <div className="mono" style={{fontSize:10, color:'var(--text-muted)', marginTop:2}}>v1.0.0 · on-prem</div>
+    </div>
+
+    {activeEng && (
+      <div style={{padding:'14px 22px', borderBottom:'1px solid var(--border)'}}>
+        <div className="mono" style={{fontSize:9, color:'var(--text-muted)', letterSpacing:2}}>ACTIVE ENGAGEMENT</div>
+        <div style={{fontSize:13, color:'var(--text)', marginTop:4}}>{activeEng.client}</div>
+        <div className="mono" style={{fontSize:10, color:'var(--text-muted)'}}>{activeEng.id} · {activeEng.type}</div>
+        <button onClick={()=>{setActiveEng(null); setPage('dashboard');}}
+          className="mono mt-2" style={{fontSize:9, color:'var(--text-muted)', letterSpacing:2, background:'transparent', border:'none', cursor:'pointer'}}>
+          ← SWITCH ENGAGEMENT
+        </button>
+      </div>
+    )}
+
+    <nav className="flex-1" style={{padding:'14px 0'}}>
+      <div className="mono" style={{fontSize:9, letterSpacing:3, color:'var(--text-muted)', padding:'8px 22px 6px'}}>WORKSPACE</div>
+      <SidebarItem icon="dashboard" label="Dashboard" page="dashboard" current={page} setPage={setPage} />
+      {activeEng && <>
+        <SidebarItem icon="activity" label="Engagement Overview" page="engagement" current={page} setPage={setPage} />
+        <SidebarItem icon="target" label="Targets / Recon" page="targets" current={page} setPage={setPage} />
+        <SidebarItem icon="bug" label="Findings" page="findings" current={page} setPage={setPage} />
+        <SidebarItem icon="flag" label="Tasks (Kanban)" page="tasks" current={page} setPage={setPage} />
+        <SidebarItem icon="file" label="Reports" page="reports" current={page} setPage={setPage} />
+      </>}
+      <div className="mono" style={{fontSize:9, letterSpacing:3, color:'var(--text-muted)', padding:'16px 22px 6px'}}>ORG</div>
+      <SidebarItem icon="users" label="Team" page="team" current={page} setPage={setPage} />
+      <SidebarItem icon="settings" label="Settings" page="settings" current={page} setPage={setPage} />
+    </nav>
+
+    <div style={{padding:'14px 22px', borderTop:'1px solid var(--border)'}}>
+      <div className="flex items-center gap-2 mb-2">
+        <div style={{width:8,height:8,borderRadius:'50%',background:'var(--green)',boxShadow:'0 0 6px var(--green)'}}></div>
+        <span className="mono" style={{fontSize:10, color:'var(--text-dim)'}}>r.chen · ENGAGEMENT_LEAD</span>
+      </div>
+      <button onClick={logout} className="flex items-center gap-2 mono"
+              style={{fontSize:10, color:'var(--text-muted)', letterSpacing:2, background:'transparent', border:'none', cursor:'pointer'}}>
+        <Icon name="logout" size={12} /> SIGN OUT
+      </button>
+    </div>
+  </aside>
+);
+
+const TopBar = ({ title, breadcrumb, right }) => (
+  <header style={{height:56, borderBottom:'1px solid var(--border)', background:'var(--surface)', padding:'0 36px'}}
+          className="sticky top-0 z-50 flex items-center justify-between">
+    <div className="flex items-center gap-4">
+      <div className="mono" style={{fontSize:11, color:'var(--text-muted)', letterSpacing:1}}>
+        {breadcrumb}
+      </div>
+      <div style={{width:1, height:18, background:'var(--border)'}}></div>
+      <div style={{fontSize:14, fontWeight:600}}>{title}</div>
+    </div>
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 mono" style={{fontSize:10, color:'var(--text-muted)'}}>
+        <Icon name="server" size={12} />
+        <span>edge-01.redops.local</span>
+      </div>
+      <span className="pill pill-green glow-pulse">● LIVE</span>
+      <button className="btn-ghost" style={{padding:'6px 10px'}}>
+        <Icon name="bell" size={14} />
+      </button>
+      <div className="mono" style={{fontSize:10, color:'var(--text-dim)'}}>RC</div>
+    </div>
+  </header>
+);
+
+// ====================== LOGIN ======================
+const Login = ({ onLogin }) => {
+  const [email, setEmail] = useState('r.chen@redops.io');
+  const [pw, setPw] = useState('••••••••••••');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState(1);
+
+  const submit = (e) => { e.preventDefault(); step===1 ? setStep(2) : onLogin(); };
+
+  return (
+    <div className="grid-bg min-h-screen flex items-center justify-center" style={{position:'relative'}}>
+      <div style={{position:'absolute', top:24, left:36}}>
+        <div className="heading-eyebrow">SECURE TERMINAL</div>
+      </div>
+      <div style={{width:440}} className="card p-8" >
+        <div className="mono" style={{fontSize:10, color:'var(--red)', letterSpacing:3}}>// REDOPS_</div>
+        <h1 style={{fontSize:34, fontWeight:900, letterSpacing:-1.2, lineHeight:1.05, marginTop:6}}>
+          Sign in to <span style={{color:'var(--red)'}}>RedOps Collab</span>
+        </h1>
+        <p style={{color:'var(--text-muted)', marginTop:8, fontSize:13}}>
+          Authenticated, audited, compartmentalized. All sessions are logged per §7.3 of the SRS.
+        </p>
+
+        <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
+          {step===1 && <>
+            <div>
+              <label className="field-label">Operator email</label>
+              <input className="field-input" value={email} onChange={e=>setEmail(e.target.value)} />
+            </div>
+            <div>
+              <label className="field-label">Passphrase</label>
+              <input type="password" className="field-input" value={pw} onChange={e=>setPw(e.target.value)} />
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:1.5}}>
+                <input type="checkbox" defaultChecked /> REMEMBER DEVICE (HW-KEY)
+              </label>
+              <a className="mono" style={{fontSize:10, color:'var(--red)', letterSpacing:1.5, cursor:'pointer'}}>FORGOT?</a>
+            </div>
+            <button className="btn-red mt-2 flex items-center justify-center gap-2">
+              CONTINUE <Icon name="arrow" size={14}/>
+            </button>
+          </>}
+          {step===2 && <>
+            <div className="mono" style={{fontSize:11, color:'var(--text-dim)'}}>
+              <Icon name="lock" size={12} /> &nbsp; 2-factor required for ENGAGEMENT_LEAD role.
+            </div>
+            <div>
+              <label className="field-label">TOTP code (6 digits)</label>
+              <input maxLength={6} placeholder="000 000" autoFocus value={otp} onChange={e=>setOtp(e.target.value)}
+                     className="field-input mono" style={{fontSize:24, letterSpacing:8, textAlign:'center', padding:'14px'}} />
+            </div>
+            <button className="btn-red mt-2 flex items-center justify-center gap-2">
+              AUTHENTICATE <Icon name="arrow" size={14}/>
+            </button>
+            <button type="button" onClick={()=>setStep(1)} className="btn-ghost">← BACK</button>
+          </>}
+        </form>
+
+        <div className="mt-6 pt-5" style={{borderTop:'1px solid var(--border)'}}>
+          <div className="mono" style={{fontSize:9, color:'var(--text-muted)', letterSpacing:2}}>SESSION META</div>
+          <div className="mono mt-1" style={{fontSize:10, color:'var(--text-dim)'}}>
+            ip 10.20.4.118 · ua firefox/137 linux · risk_score 0.12
+          </div>
+        </div>
+      </div>
+      <div className="mono" style={{position:'absolute', bottom:18, right:36, fontSize:10, color:'var(--text-muted)'}}>
+        <span className="blink">RedOps Collab v1.0.0 — restricted</span>
+      </div>
+    </div>
+  );
+};
+
+// ====================== DASHBOARD ======================
+const Dashboard = ({ engagements, setActiveEng, setPage }) => {
+  const active = engagements.filter(e=>e.status==='ACTIVE');
+  const stats = {
+    active: active.length,
+    crits: engagements.reduce((s,e)=>s+e.criticals,0),
+    findings: engagements.reduce((s,e)=>s+e.findings,0),
+    operators: 12,
+  };
+  const pick = (e) => { setActiveEng(e); setPage('engagement'); };
+
+  return (
+    <div style={{padding:'40px 48px', maxWidth:1280}}>
+      <div className="heading-eyebrow mb-3">/ COMMAND CENTER</div>
+      <div className="flex items-end justify-between">
+        <h1 style={{fontSize:42, fontWeight:900, letterSpacing:-1.5, lineHeight:1.05}}>
+          Operations <span style={{color:'var(--red)'}}>Dashboard</span>
+        </h1>
+        <button className="btn-red flex items-center gap-2"><Icon name="plus" size={14}/> NEW ENGAGEMENT</button>
+      </div>
+      <p style={{color:'var(--text-dim)', marginTop:10, maxWidth:680}}>
+        Welcome back, Rachel. You have <span style={{color:'var(--red)'}}>{stats.crits} critical findings</span> pending sign-off across {stats.active} active engagements.
+      </p>
+
+      <div className="grid grid-cols-4 gap-3 mt-8">
+        <div className="stat-card">
+          <div className="mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:2}}>ACTIVE ENGAGEMENTS</div>
+          <div style={{fontSize:32, fontWeight:700, marginTop:4}}>{stats.active}</div>
+        </div>
+        <div className="stat-card" style={{borderColor:'var(--red-dim)'}}>
+          <div className="mono" style={{fontSize:10, color:'var(--red)', letterSpacing:2}}>CRITICAL FINDINGS</div>
+          <div style={{fontSize:32, fontWeight:700, marginTop:4, color:'var(--red)'}}>{stats.crits}</div>
+        </div>
+        <div className="stat-card">
+          <div className="mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:2}}>TOTAL FINDINGS</div>
+          <div style={{fontSize:32, fontWeight:700, marginTop:4}}>{stats.findings}</div>
+        </div>
+        <div className="stat-card">
+          <div className="mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:2}}>OPERATORS ONLINE</div>
+          <div style={{fontSize:32, fontWeight:700, marginTop:4, color:'var(--green)'}}>{stats.operators}</div>
+        </div>
+      </div>
+
+      <div className="mt-10 flex items-center justify-between">
+        <h2 style={{fontSize:18, fontWeight:600}}>Engagements</h2>
+        <div className="flex items-center gap-2 mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:2}}>
+          <span className="pill pill-green">ACTIVE 2</span>
+          <span className="pill pill-amber">REPORTING 1</span>
+          <span className="pill pill-gray">ARCHIVED 1</span>
+        </div>
+      </div>
+
+      <div className="card mt-3">
+        <div className="grid grid-cols-12 mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:1.5, padding:'12px 18px', borderBottom:'1px solid var(--border)'}}>
+          <div className="col-span-3">ENGAGEMENT</div>
+          <div className="col-span-2">TYPE</div>
+          <div className="col-span-2">STATUS</div>
+          <div className="col-span-1">RISK</div>
+          <div className="col-span-2">DATES</div>
+          <div className="col-span-1 text-right">FINDINGS</div>
+          <div className="col-span-1 text-right">CRIT</div>
+        </div>
+        {engagements.map(e => (
+          <div key={e.id} className="table-row grid grid-cols-12 items-center" style={{padding:'14px 18px'}} onClick={()=>pick(e)}>
+            <div className="col-span-3">
+              <div style={{fontWeight:600}}>{e.client}</div>
+              <div className="mono" style={{fontSize:10, color:'var(--text-muted)'}}>{e.id}</div>
+            </div>
+            <div className="col-span-2 mono" style={{fontSize:11, color:'var(--cyan)'}}>{e.type}</div>
+            <div className="col-span-2"><span className={`pill ${statusColor(e.status)}`}>{e.status}</span></div>
+            <div className="col-span-1"><span className={`pill ${sevColor(e.risk)}`}>{e.risk}</span></div>
+            <div className="col-span-2 mono" style={{fontSize:11, color:'var(--text-dim)'}}>{e.start} → {e.end}</div>
+            <div className="col-span-1 text-right">{e.findings}</div>
+            <div className="col-span-1 text-right" style={{color: e.criticals>0 ? 'var(--red)':'var(--text-dim)', fontWeight: e.criticals>0?700:400}}>{e.criticals}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 mt-8">
+        <div className="card p-5 col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2}}>// RECENT ACTIVITY</div>
+            <span className="mono" style={{fontSize:10, color:'var(--text-muted)'}}>last 24h</span>
+          </div>
+          {seedActivity.map((a,i)=>(
+            <div key={i} className="flex items-start gap-3 py-2" style={{borderTop: i===0?'none':'1px dashed var(--border)'}}>
+              <span className="mono pill-gray pill" style={{minWidth:60, textAlign:'center'}}>{a.who}</span>
+              <div className="flex-1">
+                <div style={{fontSize:13}}>
+                  <span style={{color:'var(--text-dim)'}}>{a.what} </span>
+                  <span className="mono" style={{color:'var(--red)'}}>{a.target}</span>
+                </div>
+                <div className="mono" style={{fontSize:10, color:'var(--text-muted)'}}>{a.when}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="card p-5">
+          <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2}}>// QUICK ACTIONS</div>
+          <div className="flex flex-col gap-2 mt-4">
+            <button className="btn-ghost text-left flex items-center gap-2"><Icon name="plus" size={12}/> CREATE FINDING</button>
+            <button className="btn-ghost text-left flex items-center gap-2"><Icon name="target" size={12}/> ADD TARGET</button>
+            <button className="btn-ghost text-left flex items-center gap-2"><Icon name="users" size={12}/> INVITE OPERATOR</button>
+            <button className="btn-ghost text-left flex items-center gap-2"><Icon name="file" size={12}/> START REPORT</button>
+            <button className="btn-ghost text-left flex items-center gap-2"><Icon name="terminal" size={12}/> IMPORT NMAP / BURP</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ====================== ENGAGEMENT OVERVIEW ======================
+const EngagementOverview = ({ eng, findings, tasks, setPage }) => {
+  const sevCount = { CRITICAL:0, HIGH:0, MEDIUM:0, LOW:0 };
+  findings.forEach(f => sevCount[f.severity]++);
+  const total = findings.length || 1;
+  return (
+    <div style={{padding:'40px 48px', maxWidth:1280}}>
+      <div className="heading-eyebrow">/ ENGAGEMENT</div>
+      <div className="flex items-end justify-between mt-3">
+        <div>
+          <h1 style={{fontSize:36, fontWeight:900, letterSpacing:-1.2}}>{eng.client}</h1>
+          <div className="mono mt-1" style={{fontSize:12, color:'var(--text-muted)'}}>{eng.id} · {eng.type} · {eng.start} → {eng.end}</div>
+        </div>
+        <div className="flex gap-2">
+          <span className={`pill ${statusColor(eng.status)}`}>{eng.status}</span>
+          <span className={`pill ${sevColor(eng.risk)}`}>RISK · {eng.risk}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-3 mt-7">
+        <div className="stat-card">
+          <div className="mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:2}}>SCOPE</div>
+          <div className="mono mt-1" style={{fontSize:12, color:'var(--text)'}}>{eng.scope}</div>
+        </div>
+        <div className="stat-card">
+          <div className="mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:2}}>TEAM</div>
+          <div style={{fontSize:24, fontWeight:700, marginTop:2}}>{eng.team} <span className="mono" style={{fontSize:11, color:'var(--text-muted)'}}>operators</span></div>
+        </div>
+        <div className="stat-card">
+          <div className="mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:2}}>FINDINGS</div>
+          <div style={{fontSize:24, fontWeight:700, marginTop:2}}>{findings.length}</div>
+        </div>
+        <div className="stat-card" style={{borderColor:'var(--red-dim)'}}>
+          <div className="mono" style={{fontSize:10, color:'var(--red)', letterSpacing:2}}>RISK SCORE</div>
+          <div style={{fontSize:24, fontWeight:700, marginTop:2, color:'var(--red)'}}>8.7 / 10</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 mt-8">
+        <div className="card p-5 col-span-2">
+          <div className="flex justify-between items-center mb-4">
+            <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2}}>// SEVERITY DISTRIBUTION</div>
+            <button className="mono" onClick={()=>setPage('findings')} style={{fontSize:10, color:'var(--red)', letterSpacing:1.5, background:'transparent', border:'none', cursor:'pointer'}}>VIEW ALL →</button>
+          </div>
+          <div className="severity-bar mb-3">
+            <div style={{width: `${sevCount.CRITICAL/total*100}%`, background:'var(--red)'}}></div>
+            <div style={{width: `${sevCount.HIGH/total*100}%`, background:'#ff6b00'}}></div>
+            <div style={{width: `${sevCount.MEDIUM/total*100}%`, background:'var(--amber)'}}></div>
+            <div style={{width: `${sevCount.LOW/total*100}%`, background:'var(--cyan)'}}></div>
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-center">
+            {['CRITICAL','HIGH','MEDIUM','LOW'].map(k => (
+              <div key={k} className="card" style={{padding:'10px'}}>
+                <div className={`pill ${sevColor(k)}`}>{k}</div>
+                <div style={{fontSize:22, fontWeight:700, marginTop:6}}>{sevCount[k]}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2}}>// TIMELINE</div>
+          <div className="mt-3">
+            {seedActivity.slice(0,5).map((a,i)=>(
+              <div key={i} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="timeline-dot"></div>
+                  {i<4 && <div className="timeline-line"></div>}
+                </div>
+                <div style={{paddingBottom:14, flex:1}}>
+                  <div style={{fontSize:13}}><span style={{color:'var(--text)'}}>{a.who}</span> <span style={{color:'var(--text-dim)'}}>{a.what} </span><span className="mono" style={{color:'var(--red)'}}>{a.target}</span></div>
+                  <div className="mono" style={{fontSize:10, color:'var(--text-muted)'}}>{a.when}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card p-5">
+          <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2}}>// OPEN TASKS</div>
+          <div className="mt-3">
+            {tasks.filter(t=>t.col!=='DONE').slice(0,5).map(t=>(
+              <div key={t.id} className="kanban-card" style={{borderLeftColor: t.priority==='HIGH'?'var(--red)':'var(--amber-dim, #78500a)'}}>
+                <div className="mono" style={{fontSize:9, color:'var(--text-muted)', letterSpacing:1.5}}>{t.id} · {t.col}</div>
+                <div style={{fontSize:13, marginTop:4}}>{t.title}</div>
+                <div className="mono mt-2" style={{fontSize:10, color:'var(--text-dim)'}}>@{t.owner}</div>
+              </div>
+            ))}
+          </div>
+          <button onClick={()=>setPage('tasks')} className="btn-ghost w-full mt-2">VIEW KANBAN →</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ====================== FINDINGS LIST ======================
+const Findings = ({ findings, setPage, openFinding, startNewFinding }) => {
+  const [sev, setSev] = useState('ALL');
+  const [q, setQ] = useState('');
+  const filtered = findings.filter(f =>
+    (sev==='ALL'||f.severity===sev) &&
+    (q==='' || (f.title+' '+f.id+' '+f.tags.join(' ')).toLowerCase().includes(q.toLowerCase()))
+  );
+  return (
+    <div style={{padding:'40px 48px', maxWidth:1320}}>
+      <div className="heading-eyebrow">/ FINDINGS</div>
+      <div className="flex items-end justify-between mt-3">
+        <h1 style={{fontSize:34, fontWeight:900, letterSpacing:-1.2}}>Findings & <span style={{color:'var(--red)'}}>Vulnerabilities</span></h1>
+        <button onClick={startNewFinding} className="btn-red flex items-center gap-2"><Icon name="plus" size={14}/> NEW FINDING</button>
+      </div>
+
+      <div className="flex items-center gap-2 mt-6">
+        <div className="card flex items-center gap-2" style={{padding:'8px 12px', flex:1, maxWidth:420}}>
+          <Icon name="search" size={14} className="text-slate-500" />
+          <input className="flex-1 bg-transparent outline-none" style={{color:'var(--text)', fontSize:13}}
+                 placeholder="search by id, title, tag…" value={q} onChange={e=>setQ(e.target.value)} />
+        </div>
+        {['ALL','CRITICAL','HIGH','MEDIUM','LOW'].map(s=>(
+          <button key={s} onClick={()=>setSev(s)}
+            className={`pill ${sev===s ? sevColor(s)+' !border-2':'pill-gray'}`}
+            style={{padding:'8px 14px', cursor:'pointer', fontSize:10}}>{s}</button>
+        ))}
+      </div>
+
+      <div className="card mt-4">
+        <div className="grid grid-cols-12 mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:1.5, padding:'12px 18px', borderBottom:'1px solid var(--border)'}}>
+          <div className="col-span-1">ID</div>
+          <div className="col-span-5">TITLE</div>
+          <div className="col-span-1">SEV</div>
+          <div className="col-span-1">CVSS</div>
+          <div className="col-span-2">STATUS</div>
+          <div className="col-span-1">OWNER</div>
+          <div className="col-span-1 text-right">UPDATED</div>
+        </div>
+        {filtered.map(f => (
+          <div key={f.id} className="table-row grid grid-cols-12 items-center" style={{padding:'14px 18px'}} onClick={()=>openFinding(f.id)}>
+            <div className="col-span-1 mono" style={{fontSize:11, color:'var(--text-muted)'}}>{f.id}</div>
+            <div className="col-span-5">
+              <div style={{fontSize:14}}>{f.title}</div>
+              <div className="flex gap-1 mt-1">
+                {f.tags.map(t=> <span key={t} className="pill pill-gray">{t}</span>)}
+              </div>
+            </div>
+            <div className="col-span-1"><span className={`pill ${sevColor(f.severity)}`}>{f.severity}</span></div>
+            <div className="col-span-1 mono" style={{fontSize:13, color: f.cvss>=9?'var(--red)':f.cvss>=7?'#ff6b00':f.cvss>=4?'var(--amber)':'var(--cyan)'}}>{f.cvss.toFixed(1)}</div>
+            <div className="col-span-2"><span className={`pill ${statusColor(f.status)}`}>{f.status}</span></div>
+            <div className="col-span-1 mono" style={{fontSize:11, color:'var(--text-dim)'}}>@{f.owner}</div>
+            <div className="col-span-1 text-right mono" style={{fontSize:10, color:'var(--text-muted)'}}>{f.updated}</div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <div style={{padding:'32px', textAlign:'center'}} className="mono">
+            <span style={{color:'var(--text-muted)'}}>// no findings match filter</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ====================== FINDING DETAIL ======================
+const FindingDetail = ({ finding, back, addTask }) => (
+  <div style={{padding:'40px 48px', maxWidth:1280}}>
+    <button onClick={back} className="mono" style={{fontSize:11, color:'var(--text-muted)', letterSpacing:2, background:'transparent', border:'none', cursor:'pointer'}}>
+      ← BACK TO FINDINGS
+    </button>
+
+    <div className="flex items-start justify-between mt-3">
+      <div style={{flex:1}}>
+        <div className="mono" style={{fontSize:11, color:'var(--red)', letterSpacing:2}}>{finding.id}</div>
+        <h1 style={{fontSize:28, fontWeight:800, letterSpacing:-.7, marginTop:4, lineHeight:1.2}}>{finding.title}</h1>
+        <div className="flex gap-2 mt-3">
+          <span className={`pill ${sevColor(finding.severity)}`}>{finding.severity}</span>
+          <span className={`pill ${statusColor(finding.status)}`}>{finding.status}</span>
+          <span className="pill pill-gray">CVSS {finding.cvss.toFixed(1)}</span>
+          {finding.tags.map(t=> <span key={t} className="pill pill-cyan">{t}</span>)}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button className="btn-ghost">REQUEST REVIEW</button>
+        <button onClick={()=>addTask(finding)} className="btn-red flex items-center gap-2"><Icon name="plus" size={14}/> CREATE TASK</button>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-3 gap-3 mt-7">
+      <div className="col-span-2 flex flex-col gap-3">
+        <div className="card p-5">
+          <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2, marginBottom:10}}>// DESCRIPTION</div>
+          <p style={{color:'var(--text-dim)'}}>
+            The <span className="mono" style={{color:'var(--red)'}}>email</span> parameter on <span className="mono">POST /api/v2/login</span> is concatenated directly into a SQL <code className="mono" style={{color:'var(--red)'}}>WHERE</code> clause without prepared statements. A time-based blind injection payload (<span className="mono">' OR pg_sleep(5)--</span>) produces a measurable response delay, confirming exploitability. The endpoint requires no authentication and is reachable from the public internet. Full database read access — including bcrypt hashes and PAN fragments — was demonstrated in PoC.
+          </p>
+        </div>
+        <div className="card p-5">
+          <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2, marginBottom:10}}>// PROOF OF CONCEPT</div>
+          <pre className="mono" style={{background:'var(--bg)', padding:14, borderRadius:3, fontSize:12, color:'var(--green)', overflowX:'auto', border:'1px solid var(--border)'}}>
+{`$ curl -s -X POST https://auth.northwind-fin.com/api/v2/login \\
+   -H 'Content-Type: application/json' \\
+   -d '{"email":"x'"'"' OR pg_sleep(5)--","password":"_"}'
+# → response delayed by ~5.1s   [TIMING BLIND SQLi CONFIRMED]
+
+$ sqlmap -r req.txt -p email --batch --dbs
+[INFO] available databases [4]:
+[*] customers      [*] sessions    [*] internal_kv    [*] postgres`}
+          </pre>
+        </div>
+        <div className="card p-5">
+          <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2, marginBottom:10}}>// REMEDIATION</div>
+          <p style={{color:'var(--text-dim)'}}>
+            Replace ad-hoc string concatenation with parameterized queries via the ORM's <span className="mono">queryBuilder</span> or <span className="mono">$1</span> placeholders. Add input validation on the email field. Add a generic catch-all error handler so timing oracles cannot leak schema metadata.
+          </p>
+        </div>
+        <div className="card p-5">
+          <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2, marginBottom:10}}>// COMMENTS</div>
+          <div className="flex gap-3 mb-3">
+            <span className="pill pill-gray" style={{minWidth:60, textAlign:'center'}}>r.chen</span>
+            <div>
+              <div style={{fontSize:13}}>Confirmed via second test account. Promoting to CRITICAL — needs same-day client notification per RoE.</div>
+              <div className="mono" style={{fontSize:10, color:'var(--text-muted)'}}>4h ago</div>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <span className="pill pill-gray" style={{minWidth:60, textAlign:'center'}}>s.okonkwo</span>
+            <div>
+              <div style={{fontSize:13}}>Database creds extracted are reused on the support portal. Chain into F-014-002?</div>
+              <div className="mono" style={{fontSize:10, color:'var(--text-muted)'}}>2h ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col gap-3">
+        <div className="card p-5">
+          <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2, marginBottom:10}}>// METADATA</div>
+          <div className="flex flex-col gap-2 mono" style={{fontSize:12}}>
+            <div className="flex justify-between"><span style={{color:'var(--text-muted)'}}>OWNER</span><span>@{finding.owner}</span></div>
+            <div className="flex justify-between"><span style={{color:'var(--text-muted)'}}>TARGET</span><span style={{color:'var(--red)'}}>{finding.target}</span></div>
+            <div className="flex justify-between"><span style={{color:'var(--text-muted)'}}>CVSS</span><span>{finding.cvss.toFixed(1)} / 10</span></div>
+            <div className="flex justify-between"><span style={{color:'var(--text-muted)'}}>UPDATED</span><span>{finding.updated}</span></div>
+          </div>
+        </div>
+        <div className="card p-5">
+          <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2, marginBottom:10}}>// EVIDENCE (3)</div>
+          {['screenshot_login_delay.png','sqlmap_dump_2026-05-19.txt','request_burp.har'].map(f=>(
+            <div key={f} className="flex items-center justify-between mono py-1" style={{fontSize:11, borderBottom:'1px dashed var(--border)'}}>
+              <span style={{color:'var(--text-dim)'}}>{f}</span>
+              <Icon name="download" size={12} className="text-slate-500" />
+            </div>
+          ))}
+        </div>
+        <div className="card p-5">
+          <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2, marginBottom:10}}>// LINKED CVE / ATT&amp;CK</div>
+          <div className="mono" style={{fontSize:11, color:'var(--text-dim)'}}>
+            CWE-89 · CWE-209<br/>
+            ATT&amp;CK T1190 — Exploit Public-Facing App<br/>
+            OWASP A03:2021 — Injection
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// ====================== NEW FINDING FORM ======================
+const NewFinding = ({ save, cancel }) => {
+  const [form, setForm] = useState({ title:'', severity:'MEDIUM', cvss:'5.0', target:'', owner:'r.chen', tags:'', description:'' });
+  const change = (k,v) => setForm(p=>({...p,[k]:v}));
+  return (
+    <div style={{padding:'40px 48px', maxWidth:980}}>
+      <button onClick={cancel} className="mono" style={{fontSize:11, color:'var(--text-muted)', letterSpacing:2, background:'transparent', border:'none', cursor:'pointer'}}>
+        ← BACK TO FINDINGS
+      </button>
+      <div className="heading-eyebrow mt-3">/ NEW FINDING</div>
+      <h1 style={{fontSize:32, fontWeight:900, letterSpacing:-1, marginTop:6}}>Submit a <span style={{color:'var(--red)'}}>vulnerability</span></h1>
+      <p style={{color:'var(--text-dim)', marginTop:6}}>Status will default to <span className="mono">DRAFT</span>. A Senior Tester must approve before it appears in the final report.</p>
+
+      <div className="card p-6 mt-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <label className="field-label">Title</label>
+            <input className="field-input" value={form.title} onChange={e=>change('title', e.target.value)} placeholder="e.g. Stored XSS in /support/messages renderer" />
+          </div>
+          <div>
+            <label className="field-label">Severity</label>
+            <select className="field-select" value={form.severity} onChange={e=>change('severity', e.target.value)}>
+              <option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option>
+            </select>
+          </div>
+          <div>
+            <label className="field-label">CVSS 3.1 score</label>
+            <input className="field-input mono" value={form.cvss} onChange={e=>change('cvss', e.target.value)} />
+          </div>
+          <div>
+            <label className="field-label">Target host</label>
+            <input className="field-input mono" value={form.target} onChange={e=>change('target', e.target.value)} placeholder="e.g. api.northwind-fin.com" />
+          </div>
+          <div>
+            <label className="field-label">Owner</label>
+            <select className="field-select" value={form.owner} onChange={e=>change('owner', e.target.value)}>
+              <option>r.chen</option><option>k.alvarez</option><option>s.okonkwo</option><option>j.park</option><option>m.tanaka</option>
+            </select>
+          </div>
+          <div className="col-span-2">
+            <label className="field-label">Tags (comma separated)</label>
+            <input className="field-input mono" value={form.tags} onChange={e=>change('tags', e.target.value)} placeholder="XSS, CWE-79" />
+          </div>
+          <div className="col-span-2">
+            <label className="field-label">Description / PoC</label>
+            <textarea className="field-textarea" value={form.description} onChange={e=>change('description', e.target.value)} placeholder="Reproduction steps, payload, observed impact…"></textarea>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-6 pt-5" style={{borderTop:'1px solid var(--border)'}}>
+          <button className="btn-ghost" onClick={cancel}>CANCEL</button>
+          <button className="btn-red" onClick={()=>save(form)}>SAVE AS DRAFT</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ====================== TARGETS ======================
+const Targets = ({ targets }) => (
+  <div style={{padding:'40px 48px', maxWidth:1280}}>
+    <div className="heading-eyebrow">/ RECON</div>
+    <div className="flex items-end justify-between mt-3">
+      <h1 style={{fontSize:34, fontWeight:900, letterSpacing:-1.2}}>Targets & <span style={{color:'var(--red)'}}>Attack Surface</span></h1>
+      <div className="flex gap-2">
+        <button className="btn-ghost flex items-center gap-2"><Icon name="terminal" size={14}/> IMPORT NMAP</button>
+        <button className="btn-red flex items-center gap-2"><Icon name="plus" size={14}/> ADD TARGET</button>
+      </div>
+    </div>
+
+    <div className="card mt-6">
+      <div className="grid grid-cols-12 mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:1.5, padding:'12px 18px', borderBottom:'1px solid var(--border)'}}>
+        <div className="col-span-1">ID</div>
+        <div className="col-span-3">HOST</div>
+        <div className="col-span-2">IP</div>
+        <div className="col-span-3">TECH STACK</div>
+        <div className="col-span-1">STATUS</div>
+        <div className="col-span-2">NOTES</div>
+      </div>
+      {targets.map(t => (
+        <div key={t.id} className="table-row grid grid-cols-12 items-center" style={{padding:'14px 18px'}}>
+          <div className="col-span-1 mono" style={{fontSize:11, color:'var(--text-muted)'}}>{t.id}</div>
+          <div className="col-span-3 mono" style={{fontSize:13, color:'var(--red)'}}>{t.host}</div>
+          <div className="col-span-2 mono" style={{fontSize:12, color:'var(--text-dim)'}}>{t.ip}</div>
+          <div className="col-span-3 mono" style={{fontSize:11, color:'var(--cyan)'}}>{t.tech}</div>
+          <div className="col-span-1"><span className={`pill ${t.status==='IN_SCOPE'?'pill-green':'pill-gray'}`}>{t.status.replace('_',' ')}</span></div>
+          <div className="col-span-2" style={{fontSize:12, color:'var(--text-dim)'}}>{t.notes}</div>
+        </div>
+      ))}
+    </div>
+
+    <div className="grid grid-cols-2 gap-3 mt-6">
+      <div className="card p-5">
+        <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2, marginBottom:8}}>// SCOPE DOCUMENT</div>
+        <pre className="mono" style={{fontSize:12, color:'var(--text-dim)', whiteSpace:'pre-wrap'}}>
+{`IN SCOPE
+  *.northwind-fin.com   (web tier)
+  10.40.0.0/16          (internal subnets)
+  api endpoints v2 and v3
+
+OUT OF SCOPE
+  CloudFront / 3rd-party CDN
+  Production payment gateway
+  Social engineering of staff
+  Any DoS / volumetric tests
+
+RULES OF ENGAGEMENT
+  Testing window: 09:00–21:00 client-local
+  Notify on confirmed CRITICAL within 2h
+`}
+        </pre>
+      </div>
+      <div className="card p-5">
+        <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2, marginBottom:8}}>// LIVE TERMINAL — port_sweep.log</div>
+        <pre className="mono" style={{fontSize:11, color:'var(--green)', overflowX:'auto'}}>
+{`[+] 10.40.12.4    22/tcp  open  ssh    OpenSSH 9.6
+[+] 10.40.12.4    443/tcp open  https  nginx 1.24
+[+] 10.40.12.4    5432/tcp filtered postgres
+[+] 10.40.12.9    443/tcp open  https  nginx 1.24
+[+] 10.40.20.4    80/tcp  open  http   iis 8.5
+[+] 10.40.20.4    443/tcp open  https  iis 8.5
+[+] 10.40.20.4    3389/tcp open  rdp    ms-wbt
+[!] 10.40.12.4    443: TLS 1.0 negotiable  ← see F-014-008
+[+] enumeration complete · 14 hosts · 38 ports`}
+<span className="blink"></span>
+        </pre>
+      </div>
+    </div>
+  </div>
+);
+
+// ====================== TASKS / KANBAN ======================
+const Tasks = ({ tasks, setTasks }) => {
+  const cols = ['TODO','IN_PROGRESS','REVIEW','DONE'];
+  const move = (id, col) => setTasks(ts => ts.map(t => t.id===id ? {...t, col} : t));
+  return (
+    <div style={{padding:'40px 48px'}}>
+      <div className="heading-eyebrow">/ COORDINATION</div>
+      <div className="flex items-end justify-between mt-3">
+        <h1 style={{fontSize:34, fontWeight:900, letterSpacing:-1.2}}>Tasks <span style={{color:'var(--red)'}}>Board</span></h1>
+        <button className="btn-red flex items-center gap-2"><Icon name="plus" size={14}/> NEW TASK</button>
+      </div>
+      <div className="grid grid-cols-4 gap-3 mt-7">
+        {cols.map(col => (
+          <div key={col} className="card" style={{padding:14, minHeight:480}}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="mono" style={{fontSize:11, letterSpacing:2, color: col==='DONE' ? 'var(--green)' : 'var(--cyan)'}}>// {col.replace('_',' ')}</div>
+              <span className="pill pill-gray">{tasks.filter(t=>t.col===col).length}</span>
+            </div>
+            {tasks.filter(t=>t.col===col).map(t=>(
+              <div key={t.id} className="kanban-card" style={{borderLeftColor: t.priority==='HIGH'?'var(--red)': t.priority==='MED' ? 'var(--amber)':'var(--cyan)'}}>
+                <div className="flex justify-between items-center">
+                  <span className="mono" style={{fontSize:9, color:'var(--text-muted)', letterSpacing:1.5}}>{t.id}</span>
+                  <span className={`pill ${t.priority==='HIGH'?'pill-red':t.priority==='MED'?'pill-amber':'pill-cyan'}`} style={{fontSize:8}}>{t.priority}</span>
+                </div>
+                <div style={{fontSize:13, marginTop:6, lineHeight:1.45}}>{t.title}</div>
+                {t.findingId && <div className="mono mt-2" style={{fontSize:10, color:'var(--red)'}}>↳ {t.findingId}</div>}
+                <div className="flex items-center justify-between mt-2">
+                  <span className="mono" style={{fontSize:10, color:'var(--text-dim)'}}>@{t.owner}</span>
+                  <select onChange={e=>move(t.id, e.target.value)} value={t.col}
+                    className="mono" style={{fontSize:9, background:'var(--bg)', color:'var(--text-muted)', border:'1px solid var(--border)', padding:'2px 4px', borderRadius:2, letterSpacing:1, cursor:'pointer'}}>
+                    {cols.map(c => <option key={c} value={c}>{c.replace('_',' ')}</option>)}
+                  </select>
+                </div>
+              </div>
+            ))}
+            {tasks.filter(t=>t.col===col).length === 0 && (
+              <div className="mono" style={{fontSize:10, color:'var(--text-muted)', textAlign:'center', padding:'40px 0', letterSpacing:1}}>// empty</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ====================== REPORTS ======================
+const Reports = ({ reports, eng, findings }) => {
+  const [view, setView] = useState('list'); // list | builder | preview
+  const [picked, setPicked] = useState(findings.filter(f=>f.status==='CONFIRMED').map(f=>f.id));
+  const toggle = (id) => setPicked(p => p.includes(id) ? p.filter(x=>x!==id) : [...p,id]);
+
+  if (view==='preview') {
+    return (
+      <div style={{padding:'40px 48px', maxWidth:1100}}>
+        <button onClick={()=>setView('builder')} className="mono" style={{fontSize:11, color:'var(--text-muted)', letterSpacing:2, background:'transparent', border:'none', cursor:'pointer'}}>
+          ← BACK TO BUILDER
+        </button>
+        <div className="card mt-3" style={{padding:60, background:'#f4f3ee', color:'#1a1a1a', minHeight:'80vh'}}>
+          <div style={{display:'flex', justifyContent:'space-between', borderBottom:'2px solid #b91c1c', paddingBottom:20}}>
+            <div>
+              <div style={{fontFamily:'var(--mono)', fontSize:11, color:'#b91c1c', letterSpacing:3}}>REDOPS COLLAB</div>
+              <h1 style={{fontFamily:'var(--sans)', fontSize:32, fontWeight:900, marginTop:8, color:'#0a0a0a'}}>{eng.client} — Penetration Test Report</h1>
+              <div style={{color:'#555', marginTop:4}}>{eng.id} · {eng.type} · {eng.start} → {eng.end}</div>
+            </div>
+            <div style={{textAlign:'right', fontSize:11, color:'#666'}}>
+              <div>CONFIDENTIAL</div>
+              <div>v1.0 DRAFT</div>
+              <div>{new Date().toISOString().slice(0,10)}</div>
+            </div>
+          </div>
+          <h2 style={{marginTop:30, fontSize:20, fontWeight:700}}>Executive Summary</h2>
+          <p style={{marginTop:8, color:'#333', lineHeight:1.7}}>
+            Between {eng.start} and {eng.end}, a team of {eng.team} operators conducted a {eng.type.toLowerCase().replace('_',' ')} engagement against {eng.client}. {picked.length} findings were confirmed during the engagement, of which several represent critical risk to the organization, including pre-authentication SQL injection and SSRF allowing cloud metadata access.
+          </p>
+          <h2 style={{marginTop:24, fontSize:20, fontWeight:700}}>Findings Summary</h2>
+          <table style={{width:'100%', marginTop:12, fontSize:13, borderCollapse:'collapse'}}>
+            <thead>
+              <tr style={{borderBottom:'1px solid #333'}}>
+                <th style={{textAlign:'left', padding:6}}>ID</th><th style={{textAlign:'left', padding:6}}>Title</th><th style={{textAlign:'left', padding:6}}>Severity</th><th style={{textAlign:'left', padding:6}}>CVSS</th>
+              </tr>
+            </thead>
+            <tbody>
+            {findings.filter(f=>picked.includes(f.id)).map(f=>(
+              <tr key={f.id} style={{borderBottom:'1px dashed #ccc'}}>
+                <td style={{padding:6, fontFamily:'var(--mono)'}}>{f.id}</td>
+                <td style={{padding:6}}>{f.title}</td>
+                <td style={{padding:6, color:f.severity==='CRITICAL'?'#b91c1c':f.severity==='HIGH'?'#ea580c':f.severity==='MEDIUM'?'#a16207':'#0e7490'}}>{f.severity}</td>
+                <td style={{padding:6, fontFamily:'var(--mono)'}}>{f.cvss.toFixed(1)}</td>
+              </tr>
+            ))}
+            </tbody>
+          </table>
+          <div style={{marginTop:30, padding:14, background:'#fee', border:'1px solid #fcc', fontSize:12, color:'#7a1a1a'}}>
+            WATERMARK · {eng.client} · Tracking ID a8f3-2206-{eng.id.slice(-3)} · Do not redistribute.
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-3">
+          <button className="btn-ghost flex items-center gap-2"><Icon name="download" size={14}/> EXPORT PDF</button>
+          <button className="btn-ghost flex items-center gap-2"><Icon name="download" size={14}/> EXPORT DOCX</button>
+          <button className="btn-red">SEND FOR ENGAGEMENT-LEAD SIGN-OFF</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (view==='builder') {
+    return (
+      <div style={{padding:'40px 48px', maxWidth:1280}}>
+        <button onClick={()=>setView('list')} className="mono" style={{fontSize:11, color:'var(--text-muted)', letterSpacing:2, background:'transparent', border:'none', cursor:'pointer'}}>
+          ← BACK TO REPORTS
+        </button>
+        <div className="heading-eyebrow mt-3">/ REPORT BUILDER</div>
+        <h1 style={{fontSize:32, fontWeight:900, letterSpacing:-1, marginTop:6}}>Build <span style={{color:'var(--red)'}}>{eng.client}</span> report</h1>
+        <p style={{color:'var(--text-dim)', marginTop:4}}>Pick findings to include. Selected: <span style={{color:'var(--red)'}}>{picked.length}</span> / {findings.length}</p>
+
+        <div className="grid grid-cols-3 gap-3 mt-6">
+          <div className="card p-5 col-span-2">
+            <div className="mono mb-3" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2}}>// INCLUDE FINDINGS</div>
+            {findings.map(f => (
+              <label key={f.id} className="flex items-center gap-3 py-2" style={{borderBottom:'1px dashed var(--border)', cursor:'pointer'}}>
+                <input type="checkbox" checked={picked.includes(f.id)} onChange={()=>toggle(f.id)} />
+                <span className="mono" style={{fontSize:10, color:'var(--text-muted)', minWidth:74}}>{f.id}</span>
+                <span className={`pill ${sevColor(f.severity)}`} style={{minWidth:70, textAlign:'center'}}>{f.severity}</span>
+                <span style={{flex:1, fontSize:13}}>{f.title}</span>
+                <span className={`pill ${statusColor(f.status)}`}>{f.status}</span>
+              </label>
+            ))}
+          </div>
+          <div className="card p-5">
+            <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2, marginBottom:10}}>// REPORT META</div>
+            <label className="field-label">Report name</label>
+            <input className="field-input" defaultValue={`${eng.client} — Internal Tech Report v0.4`} />
+            <label className="field-label mt-3">Template</label>
+            <select className="field-select"><option>Standard Pentest v2</option><option>Executive Summary</option><option>Red Team Operational</option></select>
+            <label className="field-label mt-3">Distribution</label>
+            <select className="field-select"><option>Engagement Lead only</option><option>Engagement team</option><option>Client portal</option></select>
+            <label className="flex items-center gap-2 mt-3 mono" style={{fontSize:10, letterSpacing:1.5, color:'var(--text-muted)'}}>
+              <input type="checkbox" defaultChecked /> WATERMARK WITH CLIENT NAME + TRACKING ID
+            </label>
+            <button onClick={()=>setView('preview')} className="btn-red w-full mt-4">PREVIEW REPORT →</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{padding:'40px 48px', maxWidth:1280}}>
+      <div className="heading-eyebrow">/ DELIVERY</div>
+      <div className="flex items-end justify-between mt-3">
+        <h1 style={{fontSize:34, fontWeight:900, letterSpacing:-1.2}}>Reports & <span style={{color:'var(--red)'}}>Delivery</span></h1>
+        <button onClick={()=>setView('builder')} className="btn-red flex items-center gap-2"><Icon name="plus" size={14}/> START NEW REPORT</button>
+      </div>
+      <div className="card mt-6">
+        <div className="grid grid-cols-12 mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:1.5, padding:'12px 18px', borderBottom:'1px solid var(--border)'}}>
+          <div className="col-span-1">ID</div>
+          <div className="col-span-5">NAME</div>
+          <div className="col-span-2">STATUS</div>
+          <div className="col-span-2">AUTHOR</div>
+          <div className="col-span-1 text-right">FINDINGS</div>
+          <div className="col-span-1 text-right">UPDATED</div>
+        </div>
+        {reports.map(r=>(
+          <div key={r.id} className="table-row grid grid-cols-12 items-center" style={{padding:'14px 18px'}}>
+            <div className="col-span-1 mono" style={{fontSize:11, color:'var(--text-muted)'}}>{r.id}</div>
+            <div className="col-span-5">{r.name}</div>
+            <div className="col-span-2"><span className={`pill ${statusColor(r.status)}`}>{r.status}</span></div>
+            <div className="col-span-2 mono" style={{fontSize:12, color:'var(--text-dim)'}}>@{r.author}</div>
+            <div className="col-span-1 text-right">{r.findings}</div>
+            <div className="col-span-1 text-right mono" style={{fontSize:10, color:'var(--text-muted)'}}>{r.updated}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ====================== TEAM ======================
+const Team = ({ team }) => (
+  <div style={{padding:'40px 48px', maxWidth:1280}}>
+    <div className="heading-eyebrow">/ ORGANIZATION</div>
+    <div className="flex items-end justify-between mt-3">
+      <h1 style={{fontSize:34, fontWeight:900, letterSpacing:-1.2}}>Team & <span style={{color:'var(--red)'}}>Roles</span></h1>
+      <button className="btn-red flex items-center gap-2"><Icon name="plus" size={14}/> INVITE OPERATOR</button>
+    </div>
+    <p style={{color:'var(--text-dim)', marginTop:6, maxWidth:680}}>
+      Roles are scoped per engagement (SRS §3.1). Platform admins cannot view engagement content by design — separation of duties is enforced at the API layer.
+    </p>
+
+    <div className="card mt-6">
+      <div className="grid grid-cols-12 mono" style={{fontSize:10, color:'var(--text-muted)', letterSpacing:1.5, padding:'12px 18px', borderBottom:'1px solid var(--border)'}}>
+        <div className="col-span-3">OPERATOR</div>
+        <div className="col-span-3">ROLE</div>
+        <div className="col-span-2">ENGAGEMENTS</div>
+        <div className="col-span-2">PRESENCE</div>
+        <div className="col-span-2 text-right">LAST SEEN</div>
+      </div>
+      {team.map(t => (
+        <div key={t.user} className="table-row grid grid-cols-12 items-center" style={{padding:'14px 18px'}}>
+          <div className="col-span-3">
+            <div style={{fontWeight:600}}>{t.name}</div>
+            <div className="mono" style={{fontSize:11, color:'var(--text-muted)'}}>@{t.user}</div>
+          </div>
+          <div className="col-span-3"><span className={`pill ${t.role.includes('LEAD')||t.role.includes('ADMIN')?'pill-red':t.role.includes('SENIOR')?'pill-amber':t.role.includes('CLIENT')?'pill-cyan':'pill-gray'}`}>{t.role}</span></div>
+          <div className="col-span-2 mono" style={{fontSize:13}}>{t.engagements}</div>
+          <div className="col-span-2 mono" style={{fontSize:11}}>
+            <span style={{color: t.status==='online'?'var(--green)':t.status==='idle'?'var(--amber)':'var(--text-muted)'}}>● </span>
+            <span style={{color:'var(--text-dim)'}}>{t.status}</span>
+          </div>
+          <div className="col-span-2 text-right mono" style={{fontSize:11, color:'var(--text-muted)'}}>{t.last}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// ====================== SETTINGS ======================
+const Settings = () => (
+  <div style={{padding:'40px 48px', maxWidth:980}}>
+    <div className="heading-eyebrow">/ SYSTEM</div>
+    <h1 style={{fontSize:34, fontWeight:900, letterSpacing:-1.2, marginTop:6}}>Settings</h1>
+    <p style={{color:'var(--text-dim)', marginTop:6}}>Platform-level configuration. Changes are audited per SRS §7.3.</p>
+
+    <div className="grid grid-cols-2 gap-3 mt-7">
+      <div className="card p-5">
+        <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2}}>// AUTHENTICATION</div>
+        <label className="flex items-center justify-between mt-4">
+          <span style={{fontSize:13}}>Require 2FA for all operators</span>
+          <input type="checkbox" defaultChecked />
+        </label>
+        <label className="flex items-center justify-between mt-3">
+          <span style={{fontSize:13}}>Allow WebAuthn / hardware keys</span>
+          <input type="checkbox" defaultChecked />
+        </label>
+        <label className="flex items-center justify-between mt-3">
+          <span style={{fontSize:13}}>Session idle timeout</span>
+          <select className="field-select" style={{width:120}}><option>15 min</option><option>30 min</option><option>1 hour</option></select>
+        </label>
+      </div>
+      <div className="card p-5">
+        <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2}}>// DATA & ENCRYPTION</div>
+        <label className="flex items-center justify-between mt-4">
+          <span style={{fontSize:13}}>Encrypt evidence at rest (AES-256)</span>
+          <input type="checkbox" defaultChecked disabled />
+        </label>
+        <label className="flex items-center justify-between mt-3">
+          <span style={{fontSize:13}}>Auto-archive engagements after</span>
+          <select className="field-select" style={{width:120}}><option>30 days</option><option>90 days</option><option>180 days</option></select>
+        </label>
+        <label className="flex items-center justify-between mt-3">
+          <span style={{fontSize:13}}>Daily backups (off-site)</span>
+          <input type="checkbox" defaultChecked />
+        </label>
+      </div>
+      <div className="card p-5 col-span-2">
+        <div className="mono" style={{fontSize:11, color:'var(--cyan)', letterSpacing:2}}>// INTEGRATIONS</div>
+        <div className="grid grid-cols-4 gap-2 mt-4">
+          {['Burp Suite','Nmap / Masscan','MITRE ATT&CK','Slack','Jira','GitHub','Vault','Okta SSO'].map(s=>(
+            <div key={s} className="card p-3" style={{textAlign:'center'}}>
+              <div className="mono" style={{fontSize:11}}>{s}</div>
+              <span className="pill pill-green mt-2 inline-block">CONNECTED</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="card p-5 col-span-2" style={{borderColor:'var(--red-dim)'}}>
+        <div className="mono" style={{fontSize:11, color:'var(--red)', letterSpacing:2}}>// DANGER ZONE</div>
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <div style={{fontSize:13}}>Rotate platform encryption keys</div>
+            <div style={{fontSize:11, color:'var(--text-muted)'}}>Forces re-encryption of all evidence stores. ~12h on current dataset.</div>
+          </div>
+          <button className="btn-ghost" style={{borderColor:'var(--red-dim)', color:'var(--red)'}}>ROTATE KEYS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// ====================== APP ROOT ======================
+const App = () => {
+  const [authed, setAuthed] = useState(false);
+  const [page, setPage] = useState('dashboard');
+  const [activeEng, setActiveEng] = useState(null);
+  const [findings, setFindings] = useState(seedFindings);
+  const [tasks, setTasks] = useState(seedTasks);
+  const [openFindingId, setOpenFindingId] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(null), 2500); };
+
+  // Filter findings/tasks to active engagement scope
+  const engFindings = useMemo(()=> activeEng ? findings.filter(f=>f.engId===activeEng.id) : [], [findings, activeEng]);
+  const engTasks    = useMemo(()=> activeEng ? tasks.filter(t=>t.engId===activeEng.id) : [], [tasks, activeEng]);
+  const engTargets  = useMemo(()=> activeEng ? seedTargets.filter(t=>t.engId===activeEng.id) : [], [activeEng]);
+  const engReports  = useMemo(()=> activeEng ? seedReports.filter(r=>r.engId===activeEng.id) : seedReports, [activeEng]);
+
+  const openFinding = (id) => { setOpenFindingId(id); setPage('finding-detail'); };
+  const startNew = () => { setPage('finding-new'); };
+
+  const saveFinding = (form) => {
+    const id = `F-${activeEng.id.slice(-3)}-${String(engFindings.length + 1).padStart(3,'0')}`;
+    const newF = {
+      id, engId: activeEng.id, title: form.title || 'Untitled finding',
+      severity: form.severity, cvss: parseFloat(form.cvss)||5.0,
+      status: 'DRAFT', owner: form.owner, target: form.target || 'unknown',
+      tags: form.tags.split(',').map(s=>s.trim()).filter(Boolean), updated: 'just now',
+    };
+    setFindings(f => [newF, ...f]);
+    showToast(`✓ Finding ${id} saved as DRAFT`);
+    setPage('findings');
+  };
+
+  const addTaskFromFinding = (finding) => {
+    const id = `TK-${String(tasks.length + 1).padStart(3,'0')}`;
+    setTasks(ts => [{
+      id, engId: finding.engId,
+      title: `Follow up on ${finding.id} — ${finding.title.slice(0,40)}…`,
+      col: 'TODO', owner: finding.owner, findingId: finding.id, priority:'HIGH',
+    }, ...ts]);
+    showToast(`✓ Task ${id} created and assigned to @${finding.owner}`);
+    setPage('tasks');
+  };
+
+  const breadcrumbFor = () => {
+    const parts = ['REDOPS_'];
+    if (activeEng) parts.push(activeEng.id);
+    parts.push(({
+      dashboard:'DASHBOARD', engagement:'OVERVIEW', targets:'TARGETS',
+      findings:'FINDINGS', 'finding-detail':'FINDING', 'finding-new':'NEW_FINDING',
+      tasks:'TASKS', reports:'REPORTS', team:'TEAM', settings:'SETTINGS',
+    })[page] || page.toUpperCase());
+    return parts.join(' / ');
+  };
+
+  const titleFor = () => ({
+    dashboard:'Operations Dashboard',
+    engagement: activeEng ? activeEng.client : 'Engagement',
+    targets:'Targets & Recon',
+    findings:'Findings',
+    'finding-detail': openFindingId || 'Finding',
+    'finding-new':'New Finding',
+    tasks:'Tasks Board',
+    reports:'Reports',
+    team:'Team',
+    settings:'Settings',
+  })[page] || page;
+
+  if (!authed) return <Login onLogin={()=>{ setAuthed(true); setPage('dashboard'); showToast('✓ Authenticated · session r.chen'); }} />;
+
+  const openFinding_ = engFindings.find(f=>f.id===openFindingId);
+
+  let content;
+  switch (page) {
+    case 'dashboard': content = <Dashboard engagements={seedEngagements} setActiveEng={setActiveEng} setPage={setPage} />; break;
+    case 'engagement': content = activeEng ? <EngagementOverview eng={activeEng} findings={engFindings} tasks={engTasks} setPage={setPage}/> : null; break;
+    case 'targets': content = <Targets targets={engTargets} />; break;
+    case 'findings': content = <Findings findings={engFindings} setPage={setPage} openFinding={openFinding} startNewFinding={startNew} />; break;
+    case 'finding-detail': content = openFinding_ ? <FindingDetail finding={openFinding_} back={()=>setPage('findings')} addTask={addTaskFromFinding} /> : null; break;
+    case 'finding-new': content = <NewFinding save={saveFinding} cancel={()=>setPage('findings')} />; break;
+    case 'tasks': content = <Tasks tasks={engTasks} setTasks={setTasks} />; break;
+    case 'reports': content = activeEng ? <Reports reports={engReports} eng={activeEng} findings={engFindings} /> : null; break;
+    case 'team': content = <Team team={seedTeam} />; break;
+    case 'settings': content = <Settings />; break;
+    default: content = <div style={{padding:40}}>Page not found.</div>;
+  }
+
+  return (
+    <div className="flex">
+      <Sidebar page={page} setPage={setPage} activeEng={activeEng} setActiveEng={setActiveEng} logout={()=>setAuthed(false)} />
+      <main className="flex-1 min-h-screen" style={{background:'var(--bg)'}}>
+        <TopBar title={titleFor()} breadcrumb={breadcrumbFor()} />
+        {content}
+      </main>
+      {toast && (
+        <div style={{
+          position:'fixed', bottom:24, right:24, zIndex:1000,
+          background:'var(--surface3)', border:'1px solid var(--red)',
+          color:'var(--text)', padding:'12px 20px', borderRadius:3,
+          boxShadow:'0 0 24px rgba(229,56,59,.3)',
+        }} className="mono">
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
